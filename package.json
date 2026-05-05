@@ -1,0 +1,31 @@
+{
+  "name": "pi-peek",
+  "version": "0.1.0",
+  "description": "A pi extension for browsing current session scrollback in an overlay.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi",
+    "scrollback",
+    "tui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yeshwanthyk/pi-peek.git"
+  },
+  "homepage": "https://github.com/Yeshwanthyk/pi-peek#readme",
+  "bugs": {
+    "url": "https://github.com/Yeshwanthyk/pi-peek/issues"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
