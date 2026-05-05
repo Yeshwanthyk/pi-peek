@@ -26,6 +26,7 @@
   "pi": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/Yeshwanthyk/pi-peek/main/media/demo.mp4"
   }
 }

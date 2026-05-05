@@ -2,6 +2,8 @@
 
 Peek is a [pi](https://github.com/mariozechner/pi) extension for browsing the current session scrollback in a keyboard-driven overlay.
 
+https://raw.githubusercontent.com/Yeshwanthyk/pi-peek/main/media/demo.mp4
+
 ## Install
 
 Recommended, via pi package install:
@@ -52,7 +54,8 @@ This repo is a pi package. `package.json` declares:
 {
   "keywords": ["pi-package"],
   "pi": {
-    "extensions": ["./index.ts"]
+    "extensions": ["./index.ts"],
+    "video": "https://raw.githubusercontent.com/Yeshwanthyk/pi-peek/main/media/demo.mp4"
   }
 }
 ```
