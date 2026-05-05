@@ -1,6 +1,6 @@
 {
   "name": "pi-peek",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A pi extension for browsing current session scrollback in an overlay.",
   "type": "module",
   "keywords": [
@@ -19,6 +19,20 @@
     "url": "https://github.com/Yeshwanthyk/pi-peek/issues"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "index.ts",
+    "overlay.ts",
+    "format.ts",
+    "search.ts",
+    "nvim.ts",
+    "media/demo.mp4",
+    "media/preview.png",
+    "README.md",
+    "LICENSE"
+  ],
   "peerDependencies": {
     "@mariozechner/pi-coding-agent": "*",
     "@mariozechner/pi-tui": "*"
@@ -27,6 +41,7 @@
     "extensions": [
       "./index.ts"
     ],
-    "video": "https://raw.githubusercontent.com/Yeshwanthyk/pi-peek/main/media/demo.mp4"
+    "video": "https://raw.githubusercontent.com/Yeshwanthyk/pi-peek/main/media/demo.mp4",
+    "image": "https://raw.githubusercontent.com/Yeshwanthyk/pi-peek/main/media/preview.png"
   }
 }
