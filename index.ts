@@ -24,7 +24,7 @@ async function openPeek(pi: ExtensionAPI, ctx: ExtensionContext): Promise<void> 
 
 export default function (pi: ExtensionAPI) {
 	pi.registerCommand("peek", {
-		description: "Peek back through the current session: scroll, jump messages, copy, view/edit in nvim",
+		description: "Peek back through the current session: scroll, jump messages, copy (M / y), view/edit in nvim",
 		handler: async (_args, ctx) => openPeek(pi, ctx),
 	});
 

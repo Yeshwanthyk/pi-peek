@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pi-peek — simple improvements</title>
+<style>
+  :root {
+    --bg: #0d1117; --ink: #e6edf3; --ink-dim: #8b949e; --ink-faint: #58606a;
+    --line: #2b3440; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922;
+    --mono: "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); padding: 40px 24px; line-height: 1.5; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h1 .dot { color: var(--accent); }
+  p.sub { color: var(--ink-dim); font-size: 14px; margin-bottom: 22px; }
+  p.sub code { font-family: var(--mono); font-size: 12px; background: #0f131a; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--accent); }
+
+  .panel { background: #151b23; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; padding: 9px 13px; border-bottom: 1px solid var(--line); background: #1a2129; font-size: 12.5px; font-weight: 600; }
+  .panel-head .k { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); font-weight: 400; }
+  .term { font-family: var(--mono); font-size: 12.5px; line-height: 1.45; padding: 14px 13px 16px; background: #0a0e14; overflow-x: auto; white-space: pre; }
+  .term .dim { color: var(--ink-dim); } .term .faint { color: var(--ink-faint); }
+  .term .accent { color: var(--accent); } .term .green { color: var(--green); }
+  .term .yellow { color: var(--yellow); } .term .border { color: #3d4855; }
+  .term .bold { font-weight: 700; }
+  .term .bg-match { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 2px; }
+  .term .bg-cur { background: #2a2a3d; font-weight: 700; border-radius: 2px; }
+  .term .user { color: #ffa657; font-weight: 700; }
+  .term .asst { color: var(--accent); font-weight: 700; }
+  .term .tlabel { color: var(--accent); }
+  .ann { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); padding: 8px 13px; border-top: 1px solid var(--line); background: #11161d; }
+
+  ul.list { list-style: none; margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+  ul.list li { display: flex; gap: 10px; align-items: baseline; font-size: 13.5px; color: var(--ink-dim); background: #11161d; border: 1px solid var(--line); border-radius: 9px; padding: 9px 13px; }
+  ul.list li .n { font-family: var(--mono); font-weight: 700; color: var(--accent); min-width: 20px; }
+  ul.list li b { color: var(--ink); font-weight: 600; }
+  ul.list li code { font-family: var(--mono); font-size: 12px; background: #0f131a; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; color: var(--accent); }
+  .foot { margin-top: 20px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="dot">▮</span> pi-peek — what changes</h1>
+  <p class="sub">Truncation fixed + <code>y</code> copy-all are in. Two small polish items on top — nothing else.</p>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span>peek — proposed (v0.2)</span>
+      <span class="k">ctrl+shift+J</span>
+    </div>
+    <div class="term"><span class="border">╭</span> Peek <span class="faint">msg 12/17</span><span class="border"> ─────────────────────╮</span>
+<span class="border">│</span> <span class="tlabel">t:on</span> <span class="faint">j/k · J/K · g/G · M · y · o/O · / · n/N · q</span> <span class="faint">   42%</span> <span class="border">│</span>
+<span class="border">│</span>                                                   <span class="border">│</span>
+<span class="border">│</span> <span class="faint"> ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ </span><span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> <span class="user">USER</span> <span class="faint">#fix-scrollback 3f2a91c1</span>                  <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> Let's fix the truncation issues. We need to see all   <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> and copy everything to the clipboard.                <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span>  <span class="faint">└─</span> <span class="bold">read</span> <span class="green">✓</span> <span class="faint">overlay.ts 1L/16kc</span>                     <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span>  <span class="faint">└─</span> <span class="bold">read</span> <span class="green">✓</span> <span class="faint">format.ts 1L/8kc</span>                      <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span>  <span class="faint">└─</span> <span class="bold">TaskUpdate</span> <span class="green">✓</span> <span class="faint">{…}</span>                           <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> <span class="asst">ASSISTANT</span> <span class="faint">#fix-scrollback 3f2a91c1</span>             <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> Found it. The <span class="bg-match">clamp</span> lives in <span class="bg-match">format.ts</span>:       <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span>                                                   <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> <span class="faint">  ```ts</span>                                               <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> <span class="faint">  export const MAX_ENTRY_CHARS = 2_000_000;</span>        <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span> <span class="faint">  ```</span>                                               <span class="border">│</span>
+<span class="border">│</span><span class="accent">▎</span>  <span class="faint">└─</span> <span class="bold">bash</span> <span class="green">✓</span> <span class="faint">npm test — long line wraps, nothing cut</span> <span class="border">│</span>
+<span class="border">│</span> <span class="faint"> ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ </span><span class="border">│</span>
+<span class="border">│</span> <span class="user">USER</span> <span class="faint">#fix-scrollback 3f2a91c1</span>                       <span class="border">│</span>
+<span class="border">│</span> Bump the cap and wrap long lines instead of cutting.     <span class="border">│</span>
+<span class="border">╰─────────────────────────────────────────────────────╯</span></div>
+    <div class="ann">match highlights: subtle underline, current = selectedBg · t:on/off shown · tool ✓/✗ colored · long lines wrap</div>
+  </div>
+
+  <ul class="list">
+    <li><span class="n">1</span><span><b>Done</b> — no more truncation: 2 MB cap (was 16 KB) and long lines wrap instead of being cut; <code>o</code>/<code>O</code> open the full text in nvim.</span></li>
+    <li><span class="n">2</span><span><b>Done</b> — <code>y</code> copies the whole session; <code>M</code> copies full tool output.</span></li>
+    <li><span class="n">3</span><span><b>Done</b> — search highlights use theme colors (no more yellow flash / lost colors).</span></li>
+    <li><span class="n">4</span><span><b>Done</b> — <code>t:on/off</code> in the status row so the tools toggle isn't invisible.</span></li>
+    <li><span class="n">5</span><span><b>Done</b> — tool lines show a bold name + colored ✓/✗ so failures stand out.</span></li>
+  </ul>
+
+  <div class="foot">pi-peek · static mockup · source: overlay.ts / format.ts</div>
+</div>
+</body>
+</html>

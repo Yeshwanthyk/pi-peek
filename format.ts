@@ -11,9 +11,13 @@ export type RenderBlock = {
 	copyText: string;
 	fullText: string;
 	toolLine?: string;
+	toolName?: string;
+	failed?: boolean;
+	toolDetail?: string;
+	toolSize?: string;
 };
 
-export const MAX_ENTRY_CHARS = 16_000;
+export const MAX_ENTRY_CHARS = 2_000_000;
 
 export function stripAnsi(text: string): string {
 	return text
@@ -103,7 +107,7 @@ function toolCalls(content: unknown): Array<{ name: string; args: unknown }> {
 		.map((part) => ({ name: String(part.name ?? "tool"), args: part.arguments }));
 }
 
-function compactToolResult(message: Record<string, unknown>): { line: string; full: string } {
+function compactToolResult(message: Record<string, unknown>): { line: string; full: string; toolName: string; failed: boolean; toolDetail: string; toolSize: string } {
 	const toolName = String(message.toolName ?? "tool");
 	const failed = Boolean(message.isError);
 	const full = normalizeText(fullContentText(message.content));
@@ -112,7 +116,7 @@ function compactToolResult(message: Record<string, unknown>): { line: string; fu
 	const size = `${nonEmptyLines.length || 1}L/${full.length}c`;
 	const status = failed ? "✗" : "✓";
 	const detail = firstLine || "done";
-	return { line: `· ${toolName} ${status} ${detail} ${size}`, full: `[${toolName} ${failed ? "error" : "ok"}]\n${full}` };
+	return { line: `· ${toolName} ${status} ${detail} ${size}`, full: `[${toolName} ${failed ? "error" : "ok"}]\n${full}`, toolName, failed, toolDetail: detail, toolSize: size };
 }
 
 function makeHeader(role: string, theme: Theme, label?: string, id?: string): string {
@@ -168,7 +172,7 @@ export function formatEntry(entry: SessionEntry, theme: Theme, label?: string): 
 					header: "",
 					markdown: "",
 					copyText: line,
-					fullText: `[tool call: ${call.name}]\n${compactJson(call.args, 8_000)}`,
+					fullText: `[tool call: ${call.name}]\n${compactJson(call.args, 1_000_000)}`,
 					toolLine: line,
 				});
 			}
@@ -186,6 +190,10 @@ export function formatEntry(entry: SessionEntry, theme: Theme, label?: string): 
 				copyText: compact.line,
 				fullText: clampText(compact.full),
 				toolLine: compact.line,
+				toolName: compact.toolName,
+				failed: compact.failed,
+				toolDetail: compact.toolDetail,
+				toolSize: compact.toolSize,
 			});
 			return blocks;
 		}

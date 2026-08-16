@@ -56,7 +56,8 @@ git clone https://github.com/Yeshwanthyk/pi-peek ~/.pi/agent/extensions/peek
 - `g` / `G`: top/bottom
 - `t`: toggle tool messages
 - `/`, `n`, `N`: search
-- `M`: copy current message
+- `M`: copy current message (full tool output for tool entries)
+- `y`: copy the entire session scrollback
 - `o`: view current message in nvim
 - `O`: edit current assistant message in nvim
 - `q` / `Esc`: close

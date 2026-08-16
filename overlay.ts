@@ -1,7 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, Theme } from "@mariozechner/pi-coding-agent";
 import { copyToClipboard, getMarkdownTheme } from "@mariozechner/pi-coding-agent";
-import type { Component, TUI, Theme } from "@mariozechner/pi-tui";
-import { Key, Markdown, matchesKey, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import type { Component, TUI } from "@mariozechner/pi-tui";
+import { Key, Markdown, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import { formatEntry, type RenderBlock, stripAnsi } from "./format.js";
 import { editAssistantBlockInNvim, viewBlockInNvim } from "./nvim.js";
 import { findMatches, highlightLine, type Match, nearestMatchAfter, nearestMatchBefore } from "./search.js";
@@ -13,13 +13,17 @@ type RenderLine = {
 	railable?: boolean;
 };
 
-const MAX_COPY_CHARS = 500_000;
+const MAX_COPY_CHARS = 5_000_000;
 
-// Background-color escapes used for search match highlights. Foreground stays
-// intact so role colors and markdown styling survive underneath.
-const MATCH_BG = "\x1b[48;5;238m";        // dim grey  — every match
-const MATCH_BG_CURRENT = "\x1b[48;5;220m\x1b[30m"; // bright yellow + black fg — current
-const BG_RESET = "\x1b[49m\x1b[39m";
+/** Wrap a rendered line so its full content stays reachable via scrolling. */
+function wrapToWidth(text: string, width: number): string[] {
+	return visibleWidth(text) <= width ? [text] : wrapTextWithAnsi(text, width);
+}
+
+// Search match highlight codes, derived from the active theme so they follow
+// light/dark and never clobber foreground colors (no \x1b[39m in the close).
+const MATCH_OPEN = "\x1b[4m"; // underline — every match
+const MATCH_CLOSE = "\x1b[22m\x1b[24m\x1b[49m"; // off bold/underline/bg only
 
 export class PeekOverlay implements Component {
 	private readonly blocks: RenderBlock[];
@@ -78,6 +82,8 @@ export class PeekOverlay implements Component {
 			this.jumpToMessage(-1);
 		} else if (data === "M") {
 			void this.copyCurrentMessage();
+		} else if (data === "y") {
+			void this.copyAll();
 		} else if (data === "o") {
 			void this.viewCurrentInNvim();
 		} else if (data === "O") {
@@ -176,11 +182,13 @@ export class PeekOverlay implements Component {
 		} else {
 			const pct = content.length > 0 ? Math.round(((this.scrollOffset + contentRows) / content.length) * 100) : 100;
 			const pctText = ` ${Math.min(100, Math.max(0, pct))}% `;
-			const hint = ` j/k · J/K · g/G   t   M o O   /n N   q`;
-			const hintStyled = this.theme.fg("dim", hint);
+			const tLabel = this.showTools ? "t:on" : "t:off";
+			const hintA = this.theme.fg("dim", ` j/k · J/K · g/G · `);
+			const hintT = this.theme.fg(this.showTools ? "accent" : "dim", tLabel);
+			const hintB = this.theme.fg("dim", ` · M o O · y · /n N · q`);
 			const pctStyled = this.theme.fg("dim", pctText);
-			const statusFill = Math.max(0, innerW - visibleWidth(hint) - visibleWidth(pctText));
-			lines.push(border("│") + hintStyled + " ".repeat(statusFill) + pctStyled + border("│"));
+			const statusFill = Math.max(0, innerW - visibleWidth(` j/k · J/K · g/G · ${tLabel} · M o O · y · /n N · q`) - visibleWidth(pctText));
+			lines.push(border("│") + hintA + hintT + hintB + " ".repeat(statusFill) + pctStyled + border("│"));
 		}
 
 		const currentBlockIdx = this.currentBlockGlobalIndex();
@@ -210,7 +218,9 @@ export class PeekOverlay implements Component {
 			if (this.searchMatches.length > 0 && !(showSticky && i === 0)) {
 				const hits = this.matchesForLine(absIdx);
 				if (hits.length > 0) {
-					text = highlightLine(text, hits, MATCH_BG, MATCH_BG_CURRENT, BG_RESET);
+					// Current match: theme selection background + bold.
+					const currentOpen = this.theme.getBgAnsi("selectedBg") + "\x1b[1m";
+					text = highlightLine(text, hits, MATCH_OPEN, currentOpen, MATCH_CLOSE);
 				}
 			}
 
@@ -258,12 +268,24 @@ export class PeekOverlay implements Component {
 		const lines: RenderLine[] = [];
 		const messageStarts: number[] = [];
 		const messageBlocks: RenderBlock[] = [];
+		const push = (text: string, blockIndex: number, railable = false) => {
+			for (const wrapped of wrapToWidth(text, width)) {
+				lines.push({ text: wrapped, plain: stripAnsi(wrapped).trimEnd(), blockIndex, railable });
+			}
+		};
 		visibleBlocks.forEach((block) => {
 			const blockIndex = this.blocks.indexOf(block);
 			if (block.kind === "tool") {
-				const raw = (block.toolLine ?? block.copyText).replace(/^· /, "");
-				const line = this.theme.fg("dim", `   └─ ${raw}`);
-				lines.push({ text: line, plain: stripAnsi(line).trimEnd(), blockIndex });
+				// Tool results: bold tool name + colored ✓/✗ so failures stand out.
+				if (block.toolName) {
+					const name = this.theme.fg("toolTitle", this.theme.bold(block.toolName));
+					const status = block.failed ? this.theme.fg("error", "✗") : this.theme.fg("success", "✓");
+					const rest = this.theme.fg("dim", ` ${block.toolDetail ?? ""} ${block.toolSize ?? ""}`.trimEnd());
+					push(`   └─ ${name} ${status} ${rest}`.trimEnd(), blockIndex);
+				} else {
+					const raw = (block.toolLine ?? block.copyText).replace(/^· /, "");
+					push(this.theme.fg("dim", `   └─ ${raw}`), blockIndex);
+				}
 				return;
 			}
 
@@ -272,18 +294,17 @@ export class PeekOverlay implements Component {
 
 			// Separator above each message after the first: thin dim rule, not railable.
 			if (lines.length > 0) {
-				const rule = this.theme.fg("border", `   ${"─ ".repeat(Math.max(1, Math.floor((width - 6) / 2)))}`.trimEnd());
-				lines.push({ text: rule, plain: stripAnsi(rule).trimEnd(), blockIndex });
+				push(this.theme.fg("border", `   ${"─ ".repeat(Math.max(1, Math.floor((width - 6) / 2)))}`.trimEnd()), blockIndex);
 			}
 
 			// Header — railable, leading space at col 0 for rail substitution.
-			lines.push({ text: ` ${block.header}`, plain: stripAnsi(block.header), blockIndex, railable: true });
+			push(` ${block.header}`, blockIndex, true);
 
 			const md = new Markdown(block.markdown || "∅", 2, 0, getMarkdownTheme(), {
 				color: (text) => this.theme.fg(block.kind === "meta" ? "muted" : "text", text),
 			});
 			for (const rendered of md.render(Math.max(1, width))) {
-				lines.push({ text: rendered, plain: stripAnsi(rendered), blockIndex, railable: true });
+				push(rendered, blockIndex, true);
 			}
 		});
 		this.cachedMessageStarts = messageStarts;
@@ -382,7 +403,31 @@ export class PeekOverlay implements Component {
 	private async copyCurrentMessage(): Promise<void> {
 		const block = this.currentBlock();
 		if (!block) return;
+		// Tool entries carry only a one-line summary in copyText; copy the full
+		// tool result so nothing is lost.
+		if (block.kind === "tool") {
+			await this.copyText(block.fullText.trimEnd(), "tool result");
+			return;
+		}
 		await this.copyText(`${stripAnsi(block.header)}\n${block.copyText}`.trimEnd(), "current message");
+	}
+
+	private async copyAll(): Promise<void> {
+		const parts: string[] = [];
+		for (const block of this.blocks) {
+			if (block.kind === "tool") {
+				parts.push(stripAnsi(block.toolLine ?? block.copyText));
+			} else {
+				const header = stripAnsi(block.header).trim();
+				parts.push(header ? `${header}\n${block.copyText}` : block.copyText);
+			}
+		}
+		const text = parts.filter((part) => part.trim()).join("\n\n").trimEnd();
+		if (!text) {
+			this.ctx.ui.notify("Nothing to copy", "info");
+			return;
+		}
+		await this.copyText(text, "entire session");
 	}
 
 	private async viewCurrentInNvim(): Promise<void> {
